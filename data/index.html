@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boitier LED</title>
+  <style>
+    /* ── Réinitialisation des marges et padding par défaut du navigateur ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── Style général de la page : fond sombre, texte centré ── */
+    body {
+      background: #0f0f13;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+    }
+
+    /* ── Titre principal ── */
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 300;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    /* ── Sous-titre discret sous le titre ── */
+    .subtitle {
+      font-size: 0.75rem;
+      color: #555;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+    }
+
+    /* ── Bouton switch Manuel / Capteurs ── */
+    .mode-toggle {
+      display: flex;
+      background: #1a1a22;
+      border-radius: 50px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 36px;
+      border: 1px solid #2a2a35;
+    }
+
+    /* ── Style de base des boutons du switch (inactif) ── */
+    .mode-btn {
+      padding: 10px 28px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      background: transparent;
+      color: #555;
+    }
+
+    /* ── Style du bouton actif (sélectionné) ── */
+    .mode-btn.active {
+      background: linear-gradient(135deg, #6c63ff, #a855f7);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
+    }
+
+    /* ── Carte conteneur pour chaque section ── */
+    .card {
+      background: #1a1a22;
+      border: 1px solid #2a2a35;
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Titre en petit au dessus de chaque carte ── */
+    .card-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    /* ── Conteneur du color picker custom ── */
+    .cp-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Canvas où on dessine le dégradé de couleurs ── */
+    #cpCanvas {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      cursor: crosshair;
+      display: block;
+    }
+
+    /* ── Ligne en dessous du canvas : aperçu couleur + slider teinte ── */
+    .cp-bottom { display: flex; align-items: center; gap: 14px; }
+
+    /* ── Cercle qui montre la couleur actuellement sélectionnée ── */
+    .cp-swatch {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 3px solid #2a2a35;
+      background: #ff5555;
+      transition: background 0.15s;
+    }
+
+    .cp-sliders { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Slider arc-en-ciel pour choisir la teinte (rouge, vert, bleu...) ── */
+    .hue-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 10px;
+      outline: none;
+      background: linear-gradient(to right,
+        #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    }
+
+    /* ── Poignée du slider teinte ── */
+    .hue-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #333;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+    }
+
+    /* ── Ligne avec le nom du slider à gauche et la valeur à droite ── */
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .slider-label span:first-child { font-size: 0.85rem; color: #aaa; }
+    .slider-label span:last-child { font-size: 0.85rem; color: #6c63ff; font-weight: 600; }
+
+    /* ── Style commun pour tous les sliders (luminosité, jauge) ── */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 10px;
+      background: #2a2a35;
+      outline: none;
+      margin-bottom: 20px;
+    }
+
+    /* ── Poignée des sliders luminosité et jauge ── */
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6c63ff, #a855f7);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(108, 99, 255, 0.5);
+    }
+
+    /* ── Grille 2 colonnes pour les boutons d'effets ── */
+    .effects-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    /* ── Style de base d'un bouton d'effet ── */
+    .effect-btn {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a35;
+      background: #12121a;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    /* ── Survol d'un bouton d'effet ── */
+    .effect-btn:hover { border-color: #6c63ff; color: #fff; }
+
+    /* ── Bouton d'effet actif (effet actuellement sélectionné) ── */
+    .effect-btn.active {
+      background: linear-gradient(135deg, rgba(108,99,255,0.2), rgba(168,85,247,0.2));
+      border-color: #6c63ff;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(108, 99, 255, 0.2);
+    }
+
+    /* ── Grille 3 colonnes pour les 3 capteurs ── */
+    .sensors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    /* ── Carte individuelle d'un capteur ── */
+    .sensor-card {
+      background: #12121a;
+      border: 1px solid #2a2a35;
+      border-radius: 14px;
+      padding: 16px 10px;
+      text-align: center;
+    }
+
+    .sensor-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .sensor-value { font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .sensor-name { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #555; }
+
+    /* ── Section des barres de progression sous les capteurs ── */
+    .sensor-bar-wrap { margin-top: 20px; }
+
+    .sensor-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    /* ── Fond gris de la barre de progression ── */
+    .sensor-bar {
+      height: 6px;
+      border-radius: 10px;
+      background: #2a2a35;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    /* ── Partie colorée de la barre (elle s'anime quand la valeur change) ── */
+    .sensor-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease, background 0.5s ease;
+    }
+
+    /* ── Classe utilitaire pour cacher un élément ── */
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Boitier LED</h1>
+  <p class="subtitle">Contrôle d'ambiance</p>
+
+  <!-- Bouton switch pour choisir le mode Manuel ou Capteurs -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnManuel" onclick="setMode('manuel')">Manuel</button>
+    <button class="mode-btn" id="btnCapteurs" onclick="setMode('capteurs')">Capteurs</button>
+  </div>
+
+  <!-- ════════════════ MODE MANUEL ════════════════ -->
+  <div id="modeManuel">
+
+    <!-- Carte : color picker custom -->
+    <div class="card">
+      <p class="card-title">Couleur</p>
+      <div class="cp-wrap">
+        <!-- Canvas sur lequel on dessine le dégradé saturation/luminosité -->
+        <canvas id="cpCanvas" width="380" height="180"></canvas>
+        <div class="cp-bottom">
+          <!-- Cercle aperçu de la couleur sélectionnée -->
+          <div class="cp-swatch" id="cpSwatch"></div>
+          <div class="cp-sliders">
+            <!-- Slider arc-en-ciel pour changer la teinte -->
+            <input type="range" class="hue-slider" id="hueSlider" min="0" max="360" value="0"
+              oninput="onHueChange()" style="margin-bottom:0" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carte : slider de luminosité (0 à 255) -->
+    <div class="card">
+      <p class="card-title">Luminosité</p>
+      <div class="slider-label">
+        <span>Intensité</span>
+        <span id="brightnessVal">80%</span>
+      </div>
+      <!-- oninput : appelle onBrightnessChange() à chaque mouvement du slider -->
+      <input type="range" id="brightness" min="0" max="255" value="200"
+        oninput="onBrightnessChange(this.value)" />
+    </div>
+
+    <!-- Carte : slider jauge (nombre de LEDs allumées, de 0 à 54) -->
+    <div class="card">
+      <p class="card-title">Jauge</p>
+      <div class="slider-label">
+        <span>LEDs allumées</span>
+        <span id="gaugeVal">54 / 54</span>
+      </div>
+      <input type="range" id="gauge" min="0" max="54" value="54"
+        oninput="onGaugeChange(this.value)" />
+    </div>
+
+    <!-- Carte : boutons pour choisir un effet LED -->
+    <div class="card">
+      <p class="card-title">Effets</p>
+      <div class="effects-grid">
+        <!-- Chaque bouton envoie le nom de l'effet à l'ESP32 -->
+        <button class="effect-btn active" onclick="setEffect('solid', this)">Fixe</button>
+        <button class="effect-btn" onclick="setEffect('rainbow', this)">Arc-en-ciel</button>
+        <button class="effect-btn" onclick="setEffect('pulse', this)">Pulse</button>
+        <button class="effect-btn" onclick="setEffect('fire', this)">Feu</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════ MODE CAPTEURS ════════════════ -->
+  <!-- Caché par défaut, affiché quand on clique sur "Capteurs" -->
+  <div id="modeCapteurs" class="hidden">
+    <div class="card">
+      <p class="card-title">Capteurs en temps réel</p>
+
+      <!-- Les 3 cartes capteurs : température, humidité, lumière -->
+      <div class="sensors-grid">
+        <div class="sensor-card">
+          <div class="sensor-icon">🌡️</div>
+          <!-- La valeur sera mise à jour automatiquement toutes les 3 secondes -->
+          <div class="sensor-value" id="tempVal">--°</div>
+          <div class="sensor-name">Temp.</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-icon">💧</div>
+          <div class="sensor-value" id="humVal">--%</div>
+          <div class="sensor-name">Humidité</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-icon">☀️</div>
+          <div class="sensor-value" id="luxVal">--</div>
+          <div class="sensor-name">Lumière</div>
+        </div>
+      </div>
+
+      <!-- Barres de progression pour visualiser les valeurs capteurs -->
+      <div class="sensor-bar-wrap">
+        <div class="sensor-bar-label"><span>Température</span><span id="tempPct">--%</span></div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="tempBar" style="width:0%"></div></div>
+
+        <div class="sensor-bar-label"><span>Humidité</span><span id="humPct">--%</span></div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="humBar" style="width:0%;background:#38bdf8"></div></div>
+
+        <div class="sensor-bar-label"><span>Lumière</span><span id="luxPct">--%</span></div>
+        <div class="sensor-bar"><div class="sensor-bar-fill" id="luxBar" style="width:0%;background:#facc15"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    // ════════════════════════════════════════════════════
+    // COLOR PICKER CUSTOM
+    // On dessine un dégradé sur un canvas HTML et on lit
+    // la couleur du pixel où l'utilisateur clique/glisse
+    // ════════════════════════════════════════════════════
+
+    const canvas = document.getElementById('cpCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let hue = 0;                              // Teinte actuelle (0-360)
+    let pickedR = 255, pickedG = 85, pickedB = 85; // Couleur sélectionnée en RGB
+    let dragging = false;                     // Est-ce qu'on est en train de glisser ?
+    let cursorX = canvas.width, cursorY = 0; // Position du curseur sur le canvas
+
+    // Dessine le dégradé 2D (blanc→couleur en horizontal, transparent→noir en vertical)
+    function drawPicker() {
+      const w = canvas.width, h = canvas.height;
+
+      // Dégradé horizontal : blanc à gauche → couleur pure à droite (saturation)
+      const gradH = ctx.createLinearGradient(0, 0, w, 0);
+      gradH.addColorStop(0, '#fff');
+      gradH.addColorStop(1, `hsl(${hue},100%,50%)`);
+      ctx.fillStyle = gradH;
+      ctx.fillRect(0, 0, w, h);
+
+      // Dégradé vertical par-dessus : transparent en haut → noir en bas (luminosité)
+      const gradV = ctx.createLinearGradient(0, 0, 0, h);
+      gradV.addColorStop(0, 'rgba(0,0,0,0)');
+      gradV.addColorStop(1, '#000');
+      ctx.fillStyle = gradV;
+      ctx.fillRect(0, 0, w, h);
+
+      // Dessine le cercle curseur à la position actuelle
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 10, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cursorX, cursorY, 8, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Lit la couleur du pixel sous le curseur et envoie à l'ESP32
+    function pickColor(x, y) {
+      // S'assure que le curseur reste dans les limites du canvas
+      x = Math.max(0, Math.min(canvas.width - 1, x));
+      y = Math.max(0, Math.min(canvas.height - 1, y));
+      cursorX = x; cursorY = y;
+      drawPicker();
+
+      // Lit les valeurs R, G, B du pixel sous le curseur
+      const px = ctx.getImageData(x, y, 1, 1).data;
+      pickedR = px[0]; pickedG = px[1]; pickedB = px[2];
+
+      // Met à jour le cercle aperçu avec la couleur sélectionnée
+      document.getElementById('cpSwatch').style.background = `rgb(${pickedR},${pickedG},${pickedB})`;
+
+      // Envoie la couleur à l'ESP32
+      sendColor();
+    }
+
+    // Convertit les coordonnées souris/tactile en coordonnées canvas
+    // (nécessaire car le canvas est affiché plus petit que sa résolution réelle)
+    function getCanvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const src = e.touches ? e.touches[0] : e; // Gère souris ET tactile
+      return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+    }
+
+    // Événements souris (PC)
+    canvas.addEventListener('mousedown', e => { dragging = true; const p = getCanvasPos(e); pickColor(p.x, p.y); });
+    canvas.addEventListener('mousemove', e => { if (dragging) { const p = getCanvasPos(e); pickColor(p.x, p.y); } });
+    canvas.addEventListener('mouseup', () => dragging = false);
+
+    // Événements tactiles (téléphone)
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); const p = getCanvasPos(e); pickColor(p.x, p.y); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); const p = getCanvasPos(e); pickColor(p.x, p.y); }, { passive: false });
+
+    // Appelé quand on bouge le slider arc-en-ciel → redessine le canvas avec la nouvelle teinte
+    function onHueChange() {
+      hue = document.getElementById('hueSlider').value;
+      drawPicker();
+      pickColor(cursorX, cursorY); // Relit la couleur au même endroit avec la nouvelle teinte
+    }
+
+    // Envoie la couleur RGB à l'ESP32 via une requête HTTP
+    // → l'ESP32 reçoit /color?r=255&g=0&b=128 et met à jour les LEDs
+    function sendColor() {
+      fetch(`/color?r=${pickedR}&g=${pickedG}&b=${pickedB}`);
+    }
+
+    // Initialisation : dessine le picker et sélectionne la couleur par défaut
+    drawPicker();
+    pickColor(canvas.width, 0);
+
+
+    // ════════════════════════════════════════════════════
+    // CONTRÔLES (mode, luminosité, jauge, effets)
+    // ════════════════════════════════════════════════════
+
+    // Change le mode d'affichage (Manuel ou Capteurs)
+    // et envoie le mode choisi à l'ESP32
+    function setMode(mode) {
+      // Affiche/cache les sections selon le mode
+      document.getElementById('modeManuel').classList.toggle('hidden', mode !== 'manuel');
+      document.getElementById('modeCapteurs').classList.toggle('hidden', mode !== 'capteurs');
+      // Met à jour le style des boutons
+      document.getElementById('btnManuel').classList.toggle('active', mode === 'manuel');
+      document.getElementById('btnCapteurs').classList.toggle('active', mode === 'capteurs');
+      // Envoie le mode à l'ESP32 → /mode?value=manuel ou /mode?value=capteurs
+      fetch('/mode?value=' + mode);
+      // Démarre la mise à jour des capteurs si on passe en mode Capteurs
+      if (mode === 'capteurs') startSensorPolling();
+    }
+
+    // Appelé quand on bouge le slider luminosité
+    // Envoie la valeur (0-255) à l'ESP32 → /brightness?value=200
+    function onBrightnessChange(val) {
+      document.getElementById('brightnessVal').textContent = Math.round(val / 255 * 100) + '%';
+      fetch('/brightness?value=' + val);
+    }
+
+    // Appelé quand on bouge le slider jauge
+    // Envoie le nombre de LEDs à allumer à l'ESP32 → /gauge?value=27
+    function onGaugeChange(val) {
+      document.getElementById('gaugeVal').textContent = val + ' / 54';
+      fetch('/gauge?value=' + val);
+    }
+
+    // Appelé quand on clique sur un bouton d'effet
+    // Envoie le nom de l'effet à l'ESP32 → /effect?value=rainbow
+    function setEffect(effect, btn) {
+      // Retire la classe active de tous les boutons
+      document.querySelectorAll('.effect-btn').forEach(b => b.classList.remove('active'));
+      // Ajoute la classe active sur le bouton cliqué
+      btn.classList.add('active');
+      fetch('/effect?value=' + effect);
+    }
+
+
+    // ════════════════════════════════════════════════════
+    // LECTURE DES CAPTEURS (mode Capteurs uniquement)
+    // Toutes les 3 secondes, on demande les valeurs à l'ESP32
+    // et on met à jour l'affichage
+    // ════════════════════════════════════════════════════
+
+    let pollingStarted = false;
+
+    // Démarre la boucle de mise à jour (une seule fois)
+    function startSensorPolling() {
+      if (pollingStarted) return;
+      pollingStarted = true;
+      fetchSensors();
+      setInterval(fetchSensors, 3000); // Répète toutes les 3 secondes
+    }
+
+    // Demande les valeurs des capteurs à l'ESP32
+    // L'ESP32 répond avec du JSON : { "temp": 22.5, "hum": 60, "lux": 512 }
+    function fetchSensors() {
+      fetch('/sensors').then(r => r.json()).then(updateSensors).catch(() => {});
+    }
+
+    // Met à jour l'affichage avec les nouvelles valeurs reçues
+    function updateSensors(data) {
+      document.getElementById('tempVal').textContent = data.temp + '°';
+      document.getElementById('humVal').textContent = data.hum + '%';
+      document.getElementById('luxVal').textContent = data.lux;
+
+      // Calcule le pourcentage pour chaque barre (temp entre 10°C et 50°C)
+      const tempPct = Math.min(100, Math.max(0, (data.temp - 10) / 40 * 100));
+
+      // La couleur de la barre température change du bleu (froid) au rouge (chaud)
+      setBar('tempBar', 'tempPct', tempPct, `hsl(${240 - tempPct * 2.4},80%,60%)`);
+      setBar('humBar', 'humPct', Math.min(100, data.hum), '#38bdf8');
+      setBar('luxBar', 'luxPct', Math.min(100, data.lux / 1023 * 100), '#facc15');
+    }
+
+    // Met à jour une barre de progression (largeur + couleur + texte pourcentage)
+    function setBar(barId, pctId, pct, color) {
+      document.getElementById(barId).style.width = pct + '%';
+      document.getElementById(barId).style.background = color;
+      document.getElementById(pctId).textContent = Math.round(pct) + '%';
+    }
+
+  </script>
+
+</body>
+</html>
